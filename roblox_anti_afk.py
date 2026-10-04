@@ -1,74 +1,35 @@
-"""
-Roblox anti-AFK: holds W for 5 seconds every 2 minutes.
-
-Setup (Windows):
-    pip install pydirectinput pygetwindow
-
-Usage:
-    1. Open Roblox and join your game.
-    2. Run:  python roblox_anti_afk.py
-    3. Press Ctrl+C in this terminal to stop.
-
-The script brings the Roblox window to the front before pressing W,
-so you can use other windows in between (it will steal focus briefly).
-"""
-
 import time
+import pydirectinput
+import pygetwindow as gw
 
-import pydirectinput  # Roblox ignores normal virtual keys; this sends DirectInput scan codes
-
-try:
-    import pygetwindow as gw
-except ImportError:
-    gw = None
-
-INTERVAL_SECONDS = 120  # time between presses
-HOLD_SECONDS = 5        # how long to hold W
-KEY = "w"
+INTERVAL = 120          # seconds between moves
+KEYS = ["w", "a", "s", "d"]
+HOLD_EACH = 1.25        # seconds to hold each key (4 x 1.25 = 5 seconds total)
 
 pydirectinput.FAILSAFE = False
 
-
 def focus_roblox():
-    """Bring the Roblox window to the front. Returns True if found."""
-    if gw is None:
-        return True  # can't check; assume Roblox is already focused
-    windows = [w for w in gw.getWindowsWithTitle("Roblox") if w.title.strip() == "Roblox"]
-    if not windows:
+    wins = [w for w in gw.getWindowsWithTitle("Roblox") if w.title.strip() == "Roblox"]
+    if not wins:
         return False
-    win = windows[0]
     try:
-        if win.isMinimized:
-            win.restore()
-        win.activate()
+        if wins[0].isMinimized:
+            wins[0].restore()
+        wins[0].activate()
     except Exception:
-        pass  # activate() can throw even when it worked
+        pass
     time.sleep(0.5)
     return True
 
-
-def press_w():
-    pydirectinput.keyDown(KEY)
-    time.sleep(HOLD_SECONDS)
-    pydirectinput.keyUp(KEY)
-
-
-def main():
-    print(f"Anti-AFK running: holding '{KEY.upper()}' for {HOLD_SECONDS}s every {INTERVAL_SECONDS}s.")
-    print("Starting in 5 seconds... (Ctrl+C to stop)")
-    time.sleep(5)
-    try:
-        while True:
-            if focus_roblox():
-                print(time.strftime("[%H:%M:%S]"), f"Holding {KEY.upper()}...")
-                press_w()
-            else:
-                print(time.strftime("[%H:%M:%S]"), "Roblox window not found, skipping.")
-            time.sleep(INTERVAL_SECONDS)
-    except KeyboardInterrupt:
-        pydirectinput.keyUp(KEY)
-        print("\nStopped.")
-
-
-if __name__ == "__main__":
-    main()
+print("Anti-AFK running. Switch to Roblox. Ctrl+C to stop.")
+time.sleep(5)
+while True:
+    if focus_roblox():
+        print(time.strftime("[%H:%M:%S]"), "Moving W A S D...")
+        for key in KEYS:
+            pydirectinput.keyDown(key)
+            time.sleep(HOLD_EACH)
+            pydirectinput.keyUp(key)
+    else:
+        print(time.strftime("[%H:%M:%S]"), "Roblox window not found, skipping.")
+    time.sleep(INTERVAL)
